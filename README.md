@@ -1,6 +1,15 @@
 # Starq
 
-Self-hosted distributed work queue over Redis Streams. Workers claim jobs via HTTP — no SDK needed.
+A lightweight, self-hosted work queue built on Redis Streams. Create multiple independent queues and submit jobs via the web app, CLI, or API.
+
+Features:
+- **HTTP-native** — workers are simple HTTP clients in any language
+- **Long-polling** — workers block on claim, no busy-looping
+- **Auto-retry** — failed jobs retry up to a configurable limit, then dead-letter
+- **Stale reclaim** — jobs from crashed workers are automatically reassigned
+- **Deduplication** — optional per-queue payload dedup via SHA-256
+- **Batch submit** — upload JSONL files via the CLI or web UI
+- **Real-time dashboard** — monitor queues, jobs, and throughput
 
 ## Quick Start
 
@@ -8,13 +17,13 @@ Self-hosted distributed work queue over Redis Streams. Workers claim jobs via HT
 docker compose up
 ```
 
-- **Dashboard**: http://localhost:3000
+- **Web UI**: http://localhost:3000
 - **API**: http://localhost:8000/api/health
 - **Dev API key**: `dev-key`
 
 ## API
 
-Writes require `X-API-Key` header. Reads are open.
+Write endpoints require `X-API-Key` header. Reads are open.
 
 | Endpoint | Description |
 |---|---|
