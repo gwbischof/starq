@@ -50,17 +50,17 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-nebula hover:bg-nebula/80 text-white">
+        <Button size="sm" className="bg-nebula/80 hover:bg-nebula/90 text-white text-xs h-8">
           Create Queue
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-void-light border-border/50">
+      <DialogContent className="bg-[hsl(222_42%_9%)] border-white/[0.06] shadow-2xl shadow-black/60">
         <DialogHeader>
-          <DialogTitle>Create Queue</DialogTitle>
+          <DialogTitle className="text-sm">Create Queue</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="q-name">Name</Label>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="q-name" className="text-xs text-muted-foreground/70">Name</Label>
             <Input
               id="q-name"
               value={name}
@@ -68,41 +68,33 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
               placeholder="my-queue"
               pattern="^[a-z0-9][a-z0-9._-]*$"
               required
+              className="text-xs h-8"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="q-desc">Description</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="q-desc" className="text-xs text-muted-foreground/70">Description</Label>
             <Input
               id="q-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional description"
+              placeholder="Optional"
+              className="text-xs h-8"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="q-retries">Max Retries</Label>
-              <Input
-                id="q-retries"
-                type="number"
-                value={maxRetries}
-                onChange={(e) => setMaxRetries(e.target.value)}
-              />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="q-retries" className="text-xs text-muted-foreground/70">Max Retries</Label>
+              <Input id="q-retries" type="number" value={maxRetries} onChange={(e) => setMaxRetries(e.target.value)} className="text-xs h-8" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="q-timeout">Claim Timeout (s)</Label>
-              <Input
-                id="q-timeout"
-                type="number"
-                value={claimTimeout}
-                onChange={(e) => setClaimTimeout(e.target.value)}
-              />
+            <div className="space-y-1.5">
+              <Label htmlFor="q-timeout" className="text-xs text-muted-foreground/70">Claim Timeout (s)</Label>
+              <Input id="q-timeout" type="number" value={claimTimeout} onChange={(e) => setClaimTimeout(e.target.value)} className="text-xs h-8" />
             </div>
           </div>
-          {error && <p className="text-destructive text-sm">{error}</p>}
+          {error && <p className="text-destructive text-xs">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={loading} className="bg-nebula hover:bg-nebula/80 text-white">
-              {loading ? "Creating..." : "Create"}
+            <Button type="submit" size="sm" disabled={loading} className="bg-nebula/80 hover:bg-nebula/90 text-white text-xs h-8">
+              {loading ? "Creating\u2026" : "Create"}
             </Button>
           </DialogFooter>
         </form>

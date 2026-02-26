@@ -2,7 +2,7 @@ import type {
   QueueList,
   QueueInfo,
   QueueCreate,
-  JobList,
+  JobListResponse,
   JobSubmit,
   HealthResponse,
 } from "./types";
@@ -73,12 +73,14 @@ export async function deleteQueue(name: string): Promise<void> {
 export async function listJobs(
   queue: string,
   status?: string,
-  count = 50
-): Promise<JobList> {
+  count = 50,
+  cursor?: string
+): Promise<JobListResponse> {
   const params = new URLSearchParams();
   if (status) params.set("status", status);
   params.set("count", String(count));
-  return request<JobList>(
+  if (cursor) params.set("cursor", cursor);
+  return request<JobListResponse>(
     `${API_BASE}/queues/${encodeURIComponent(queue)}/jobs?${params}`
   );
 }

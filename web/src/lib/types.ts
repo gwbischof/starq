@@ -28,8 +28,10 @@ export interface JobInfo {
   completed_at: string;
 }
 
-export interface JobList {
+export interface JobListResponse {
   jobs: JobInfo[];
+  cursor: string;
+  has_more: boolean;
 }
 
 export interface ClaimedJobs {

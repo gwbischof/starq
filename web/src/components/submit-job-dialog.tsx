@@ -41,28 +41,28 @@ export function SubmitJobDialog({ queue, onSubmitted }: { queue: string; onSubmi
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-starglow/30 text-starglow hover:bg-starglow/10">
+        <Button variant="outline" size="sm" className="border-white/[0.08] text-foreground/70 hover:bg-white/[0.04] text-xs h-8">
           Submit Job
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-void-light border-border/50">
+      <DialogContent className="bg-[hsl(222_42%_9%)] border-white/[0.06] shadow-2xl shadow-black/60">
         <DialogHeader>
-          <DialogTitle>Submit Job to {queue}</DialogTitle>
+          <DialogTitle className="text-sm">Submit Job to <span className="text-starglow/80">{queue}</span></DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="j-payload">Payload (JSON)</Label>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="j-payload" className="text-xs text-muted-foreground/70">Payload (JSON)</Label>
             <textarea
               id="j-payload"
               value={payload}
               onChange={(e) => setPayload(e.target.value)}
-              className="w-full h-32 rounded-md border border-border bg-void/60 px-3 py-2 text-sm font-mono text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/50"
+              className="w-full h-28 rounded-md border border-white/[0.06] bg-void/60 px-3 py-2 text-xs font-mono text-foreground/80 focus:border-nebula/40 focus:outline-none focus:ring-1 focus:ring-nebula/20 transition-all resize-none"
             />
           </div>
-          {error && <p className="text-destructive text-sm">{error}</p>}
+          {error && <p className="text-destructive text-xs">{error}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={loading} className="bg-nebula hover:bg-nebula/80 text-white">
-              {loading ? "Submitting..." : "Submit"}
+            <Button type="submit" size="sm" disabled={loading} className="bg-nebula/80 hover:bg-nebula/90 text-white text-xs h-8">
+              {loading ? "Submitting\u2026" : "Submit"}
             </Button>
           </DialogFooter>
         </form>
