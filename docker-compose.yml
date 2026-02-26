@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: starq-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - starq-redis-data:/data
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ./api
+    container_name: starq-api
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - STARQ_API_KEYS=dev-key
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ./web
+    container_name: starq-web
+    depends_on:
+      - api
+    environment:
+      - NEXT_PUBLIC_API_URL=
+    ports:
+      - "3000:3000"
+
+volumes:
+  starq-redis-data:

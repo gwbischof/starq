@@ -1,0 +1,208 @@
+name: Deploy to queue.korroni.cloud
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-api:
+    runs-on: ubuntu-latest
+    environment: deployment
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/api
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Output image
+        id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ github.repository }}/api:latest" >> $GITHUB_OUTPUT
+
+  build-web:
+    runs-on: ubuntu-latest
+    environment: deployment
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/web
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web
+          file: ./web/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Output image
+        id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ github.repository }}/web:latest" >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: [build-api, build-web]
+    runs-on: ubuntu-latest
+    environment: deployment
+    steps:
+      - name: Deploy to korroni.cloud
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            API_IMAGE="${{ needs.build-api.outputs.image }}"
+            WEB_IMAGE="${{ needs.build-web.outputs.image }}"
+            NETWORK="${{ secrets.DOCKER_NETWORK || 'root_default' }}"
+            DOMAIN="queue.korroni.cloud"
+
+            echo "Starting deployment of Starq..."
+
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            # --- Ensure Redis is running ---
+            if ! docker ps --format "table {{.Names}}" | grep -q "^starq-redis$"; then
+              echo "Starting Redis..."
+              docker rm starq-redis 2>/dev/null || true
+              docker run -d \
+                --name starq-redis \
+                --restart unless-stopped \
+                --network "$NETWORK" \
+                -v starq-redis-data:/data \
+                redis:7-alpine \
+                redis-server --appendonly yes
+              echo "Waiting for Redis..."
+              sleep 5
+            else
+              echo "Redis already running"
+            fi
+
+            # --- Deploy API container ---
+            echo "Pulling API image..."
+            docker pull "$API_IMAGE"
+
+            if docker ps -a --format "table {{.Names}}" | grep -q "^starq-api$"; then
+              echo "Stopping existing API container..."
+              docker stop starq-api 2>/dev/null || true
+              docker rm starq-api 2>/dev/null || true
+            fi
+
+            echo "Starting API container..."
+            docker run -d \
+              --name starq-api \
+              --restart unless-stopped \
+              --network "$NETWORK" \
+              -e REDIS_URL="redis://starq-redis:6379/0" \
+              -e STARQ_API_KEYS="${{ secrets.STARQ_API_KEYS }}" \
+              -l "traefik.enable=true" \
+              -l "traefik.http.routers.starq-api.rule=Host(\`$DOMAIN\`) && PathPrefix(\`/api\`)" \
+              -l "traefik.http.routers.starq-api.priority=20" \
+              -l "traefik.http.routers.starq-api.tls=true" \
+              -l "traefik.http.routers.starq-api.tls.certresolver=myresolver" \
+              -l "traefik.http.services.starq-api.loadbalancer.server.port=8000" \
+              "$API_IMAGE"
+
+            # --- Deploy Web container ---
+            echo "Pulling Web image..."
+            docker pull "$WEB_IMAGE"
+
+            if docker ps -a --format "table {{.Names}}" | grep -q "^starq-web$"; then
+              echo "Stopping existing Web container..."
+              docker stop starq-web 2>/dev/null || true
+              docker rm starq-web 2>/dev/null || true
+            fi
+
+            echo "Starting Web container..."
+            docker run -d \
+              --name starq-web \
+              --restart unless-stopped \
+              --network "$NETWORK" \
+              -l "traefik.enable=true" \
+              -l "traefik.http.routers.starq-web.rule=Host(\`$DOMAIN\`)" \
+              -l "traefik.http.routers.starq-web.priority=10" \
+              -l "traefik.http.routers.starq-web.tls=true" \
+              -l "traefik.http.routers.starq-web.tls.certresolver=myresolver" \
+              -l "traefik.http.services.starq-web.loadbalancer.server.port=3000" \
+              "$WEB_IMAGE"
+
+            # Wait and health check
+            echo "Waiting for containers to be ready..."
+            sleep 15
+
+            if docker ps --format "table {{.Names}}" | grep -q "^starq-api$" && \
+               docker ps --format "table {{.Names}}" | grep -q "^starq-web$"; then
+              echo "Both containers running!"
+
+              if curl -f -s https://"$DOMAIN"/api/health > /dev/null 2>&1; then
+                echo "Health check passed!"
+              else
+                echo "Health check failed, but containers are running"
+                echo "API logs:"
+                docker logs --tail 20 starq-api
+              fi
+            else
+              echo "Container startup failed!"
+              docker logs starq-api 2>/dev/null
+              docker logs starq-web 2>/dev/null
+              exit 1
+            fi
+
+            # Clean up old images
+            docker image prune -af
+
+            echo "Deployment completed!"
+            echo "Application available at: https://$DOMAIN"

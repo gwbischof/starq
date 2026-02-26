@@ -1,0 +1,15 @@
+[project]
+name = "starq"
+version = "0.1.0"
+description = "Distributed work queue over Redis Streams"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "redis[hiredis]>=5.2",
+    "pydantic-settings>=2.7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
