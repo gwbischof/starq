@@ -2,6 +2,10 @@
 
 A lightweight, self-hosted work queue built on Redis Streams. Create multiple independent queues and submit jobs via the web app, CLI, or API. Queues can optionally deduplicate payloads to prevent reprocessing.
 
+<img width="1673" height="781" alt="image" src="https://github.com/user-attachments/assets/90299424-767e-4c58-ae9a-af10dc29aa15" />
+<img width="1673" height="781" alt="image" src="https://github.com/user-attachments/assets/b16f2ac9-e068-4cf6-b3b6-17ddb28ed14e" />
+
+
 Features:
 - **HTTP-native** — workers are simple HTTP clients in any language
 - **Long-polling** — workers block on claim, no busy-looping
@@ -148,3 +152,4 @@ cd api && uv run uvicorn starq.main:app --reload
 # Web only
 cd web && npm run dev
 ```
+
