@@ -12,7 +12,7 @@ class QueueCreate(BaseModel):
     name: str = Field(..., pattern=r"^[a-z0-9][a-z0-9._-]*$", max_length=128)
     description: str = ""
     max_retries: int = 3
-    claim_timeout: int = 300  # seconds
+    claim_timeout: int = 600  # seconds
     dedupe: bool = False
 
 
@@ -20,7 +20,7 @@ class QueueInfo(BaseModel):
     name: str
     description: str = ""
     max_retries: int = 3
-    claim_timeout: int = 300
+    claim_timeout: int = 600
     dedupe: bool = False
     pending: int = 0
     completed: int = 0

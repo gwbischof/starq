@@ -36,7 +36,7 @@ async def reclaim_stale_jobs():
 
             for name in names:
                 meta = await r.hgetall(queue_meta_key(name))
-                claim_timeout_ms = int(meta.get("claim_timeout", 300)) * 1000
+                claim_timeout_ms = int(meta.get("claim_timeout", 600)) * 1000
                 max_retries = int(meta.get("max_retries", 3))
                 sk = stream_key(name)
                 cg = consumer_group(name)

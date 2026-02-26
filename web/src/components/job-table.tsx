@@ -12,10 +12,10 @@ import {
 import type { JobInfo } from "@/lib/types";
 
 const statusColors: Record<string, string> = {
-  pending: "bg-warmstar/15 text-warmstar/90 border-warmstar/20",
-  claimed: "bg-starglow/12 text-starglow/85 border-starglow/20",
-  completed: "bg-[hsl(150,60%,50%)]/12 text-[hsl(150,60%,55%)] border-[hsl(150,60%,50%)]/20",
-  failed: "bg-destructive/12 text-destructive/80 border-destructive/20",
+  pending: "bg-warmstar/12 text-warmstar border-warmstar/20",
+  claimed: "bg-starglow/10 text-starglow border-starglow/20",
+  completed: "bg-aurora/10 text-aurora border-aurora/20",
+  failed: "bg-destructive/10 text-destructive/80 border-destructive/20",
 };
 
 function formatTime(ts: string) {
@@ -44,12 +44,12 @@ export const JobTable = forwardRef<HTMLDivElement, JobTableProps>(
       <>
         <Table>
           <TableHeader>
-            <TableRow className="border-white/[0.03] hover:bg-transparent">
-              <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">ID</TableHead>
-              <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Status</TableHead>
-              <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Created</TableHead>
-              <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Retries</TableHead>
-              <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Payload</TableHead>
+            <TableRow className="border-white/[0.04] hover:bg-transparent">
+              <TableHead className="text-muted-foreground/60 text-[10px] uppercase tracking-wider font-medium">ID</TableHead>
+              <TableHead className="text-muted-foreground/60 text-[10px] uppercase tracking-wider font-medium">Status</TableHead>
+              <TableHead className="text-muted-foreground/60 text-[10px] uppercase tracking-wider font-medium">Created</TableHead>
+              <TableHead className="text-muted-foreground/60 text-[10px] uppercase tracking-wider font-medium">Retries</TableHead>
+              <TableHead className="text-muted-foreground/60 text-[10px] uppercase tracking-wider font-medium">Payload</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -61,20 +61,20 @@ export const JobTable = forwardRef<HTMLDivElement, JobTableProps>(
               </TableRow>
             )}
             {jobs.map((job) => (
-              <TableRow key={job.id} className="border-white/[0.025] hover:bg-white/[0.015]">
-                <TableCell className="font-mono text-[11px] text-muted-foreground/50 max-w-[100px] truncate">
+              <TableRow key={job.id} className="border-white/[0.03] hover:bg-white/[0.02]">
+                <TableCell className="font-mono text-[11px] text-muted-foreground/60 max-w-[100px] truncate">
                   {job.id}
                 </TableCell>
                 <TableCell>
                   <StatusDot status={job.status} />
                 </TableCell>
-                <TableCell className="text-[11px] text-muted-foreground/45 tabular-nums">
+                <TableCell className="text-[11px] text-muted-foreground/55 tabular-nums">
                   {formatTime(job.created_at)}
                 </TableCell>
-                <TableCell className="text-[11px] text-muted-foreground/45 tabular-nums">
+                <TableCell className="text-[11px] text-muted-foreground/55 tabular-nums">
                   {job.retries}
                 </TableCell>
-                <TableCell className="font-mono text-[11px] text-muted-foreground/35 max-w-[180px] truncate">
+                <TableCell className="font-mono text-[11px] text-muted-foreground/45 max-w-[180px] truncate">
                   {JSON.stringify(job.payload)}
                 </TableCell>
               </TableRow>

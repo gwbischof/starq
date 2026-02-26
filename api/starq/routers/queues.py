@@ -48,7 +48,7 @@ async def _queue_info(r, name: str) -> QueueInfo:
         name=name,
         description=meta.get("description", ""),
         max_retries=int(meta.get("max_retries", 3)),
-        claim_timeout=int(meta.get("claim_timeout", 300)),
+        claim_timeout=int(meta.get("claim_timeout", 600)),
         dedupe=meta.get("dedupe", "0") == "1",
         pending=pending,
         completed=completed,

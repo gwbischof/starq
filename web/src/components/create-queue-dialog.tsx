@@ -19,7 +19,7 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [maxRetries, setMaxRetries] = useState("3");
-  const [claimTimeout, setClaimTimeout] = useState("300");
+  const [claimTimeout, setClaimTimeout] = useState("600");
   const [dedupe, setDedupe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,7 +54,7 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
           + Create Queue
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-[hsl(222_42%_9%)] border-white/[0.06] shadow-2xl shadow-black/60">
+      <DialogContent className="bg-[hsl(224_40%_9%)] border-white/[0.07] shadow-2xl shadow-black/60">
         <DialogHeader>
           <DialogTitle className="text-sm">Create Queue</DialogTitle>
         </DialogHeader>
@@ -90,10 +90,12 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
             <div className="space-y-1.5">
               <Label htmlFor="q-retries" className="text-xs text-muted-foreground/70">Max Retries</Label>
               <Input id="q-retries" type="number" value={maxRetries} onChange={(e) => setMaxRetries(e.target.value)} className="text-xs h-8" />
+              <p className="text-[10px] text-muted-foreground/40">Times a failed job is retried before giving up</p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="q-timeout" className="text-xs text-muted-foreground/70">Claim Timeout (s)</Label>
               <Input id="q-timeout" type="number" value={claimTimeout} onChange={(e) => setClaimTimeout(e.target.value)} className="text-xs h-8" />
+              <p className="text-[10px] text-muted-foreground/40">Seconds before an unfinished job is reassigned</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

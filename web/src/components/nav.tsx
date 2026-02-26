@@ -5,18 +5,18 @@ import { ApiKeyInput } from "./api-key-input";
 
 export function Nav() {
   return (
-    <nav className="sticky top-0 z-40 border-b border-white/[0.04] bg-[hsl(222_47%_6%)]/90 backdrop-blur-2xl">
+    <nav className="sticky top-0 z-40 border-b border-white/[0.05] bg-[hsl(224_44%_7%)]/90 backdrop-blur-2xl">
       <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2 group">
           <svg viewBox="0 0 24 24" fill="none" className="size-5 transition-transform group-hover:rotate-12 duration-300">
             <path
               d="M12 2L14.5 8.5L21 12L14.5 15.5L12 22L9.5 15.5L3 12L9.5 8.5L12 2Z"
-              fill="hsl(190 95% 55%)"
+              fill="hsl(192 65% 52%)"
               fillOpacity="0.9"
             />
             <path
               d="M12 6L13.2 9.8L17 12L13.2 14.2L12 18L10.8 14.2L7 12L10.8 9.8L12 6Z"
-              fill="hsl(48 100% 90%)"
+              fill="hsl(36 80% 75%)"
               fillOpacity="0.6"
             />
           </svg>

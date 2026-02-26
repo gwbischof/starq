@@ -148,7 +148,7 @@ async def claim_jobs(name: str, body: JobClaim):
 
     # First try to autoclaim stale jobs
     meta = await r.hgetall(queue_meta_key(name))
-    claim_timeout_ms = int(meta.get("claim_timeout", 300)) * 1000
+    claim_timeout_ms = int(meta.get("claim_timeout", 600)) * 1000
 
     consumer = "w"
 

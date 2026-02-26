@@ -114,7 +114,7 @@ export function SubmitJobDialog({ queue, onSubmitted }: { queue: string; onSubmi
           Submit Job
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-[hsl(222_42%_9%)] border-white/[0.06] shadow-2xl shadow-black/60">
+      <DialogContent className="bg-[hsl(224_40%_9%)] border-white/[0.07] shadow-2xl shadow-black/60">
         <DialogHeader>
           <DialogTitle className="text-sm">Submit Job to <span className="text-starglow/80">{queue}</span></DialogTitle>
         </DialogHeader>

@@ -2,16 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LiveCounter } from "@/components/live-counter";
 import { JobTable } from "@/components/job-table";
 import { SubmitJobDialog } from "@/components/submit-job-dialog";
@@ -106,21 +98,23 @@ export default function QueueDetailPage() {
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loadMore]);
 
-  const chartData = Array.from({ length: 12 }, (_, i) => ({
-    time: `${i * 5}s`,
-    completed: Math.max(0, (queue?.completed || 0) - (12 - i) * Math.floor(Math.random() * 3)),
-    failed: Math.max(0, (queue?.failed || 0) - (12 - i) * Math.floor(Math.random() * 1)),
-  }));
-
   return (
     <div className="space-y-6">
+      {/* Back link */}
+      <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70 hover:text-foreground/80 transition-colors">
+        <svg viewBox="0 0 16 16" fill="currentColor" className="size-3">
+          <path fillRule="evenodd" d="M9.78 11.78a.75.75 0 01-1.06 0L5.47 8.53a.75.75 0 010-1.06l3.25-3.25a.75.75 0 111.06 1.06L7.06 8l2.72 2.72a.75.75 0 010 1.06z" clipRule="evenodd" />
+        </svg>
+        All queues
+      </Link>
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg font-semibold text-foreground">{slug}</h1>
             {queue?.dedupe && (
-              <span className="inline-flex items-center rounded-full bg-nebula/8 border border-nebula/15 px-2 py-0.5 text-[10px] font-medium text-nebula/70">
+              <span className="inline-flex items-center rounded-full bg-nebula/10 border border-nebula/20 px-2 py-0.5 text-[10px] font-medium text-nebula/70">
                 dedupe
               </span>
             )}
@@ -142,7 +136,7 @@ export default function QueueDetailPage() {
                 Delete
               </Button>
               <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                <DialogContent className="bg-[hsl(222_42%_9%)] border-white/[0.06] shadow-2xl shadow-black/60">
+                <DialogContent className="bg-[hsl(224_40%_9%)] border-white/[0.07] shadow-2xl shadow-black/60">
                   <DialogHeader>
                     <DialogTitle className="text-sm">Delete queue <span className="text-destructive/80">{slug}</span>?</DialogTitle>
                   </DialogHeader>
@@ -180,94 +174,50 @@ export default function QueueDetailPage() {
       {/* Stats strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Pending", value: queue?.pending || 0, color: "text-warmstar/90" },
-          { label: "Completed", value: queue?.completed || 0, color: "text-[hsl(150,60%,55%)]" },
+          { label: "Pending", value: queue?.pending || 0, color: "text-warmstar" },
+          { label: "Completed", value: queue?.completed || 0, color: "text-aurora" },
           { label: "Failed", value: queue?.failed || 0, color: "text-destructive/80" },
-          { label: "Stream", value: queue?.length || 0, color: "text-nebula/80" },
+          { label: "Stream", value: queue?.length || 0, color: "text-starglow/80" },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
-            className="rounded-lg border border-white/[0.04] bg-white/[0.015] p-3"
+            className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3"
           >
-            <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 mb-1">{stat.label}</p>
+            <p className="text-[9px] uppercase tracking-widest text-muted-foreground/50 mb-1">{stat.label}</p>
             <LiveCounter value={stat.value} className={`text-xl font-bold tabular-nums ${stat.color}`} />
           </motion.div>
         ))}
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="jobs">
-        <TabsList className="bg-white/[0.02] border border-white/[0.04]">
-          <TabsTrigger value="jobs">Jobs</TabsTrigger>
-          <TabsTrigger value="stats">Stats</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="jobs" className="mt-4 space-y-3">
-          <div className="flex items-center gap-1">
-            {statusFilters.map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
-                  statusFilter === s
-                    ? "text-foreground bg-white/[0.06]"
-                    : "text-muted-foreground/50 hover:text-foreground/70"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          <div className="rounded-lg border border-white/[0.04] overflow-hidden max-h-[600px] overflow-y-auto">
-            <JobTable
-              ref={sentinelRef}
-              jobs={jobs}
-              hasMore={hasMore}
-              loadingMore={loadingMore}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="stats" className="mt-4">
-          <div className="rounded-lg border border-white/[0.04] bg-white/[0.015] p-5">
-            <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium mb-4">
-              Throughput
-            </h3>
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="gcomplete" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(190 85% 55%)" stopOpacity={0.2} />
-                      <stop offset="100%" stopColor="hsl(190 85% 55%)" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gfailed" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(0 65% 55%)" stopOpacity={0.15} />
-                      <stop offset="100%" stopColor="hsl(0 65% 55%)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="time" stroke="transparent" tick={{ fill: "hsl(220 15% 35%)", fontSize: 9 }} />
-                  <YAxis stroke="transparent" tick={{ fill: "hsl(220 15% 35%)", fontSize: 9 }} width={30} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(222 42% 9%)",
-                      border: "1px solid hsl(222 30% 16%)",
-                      borderRadius: "6px",
-                      fontSize: "11px",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-                    }}
-                  />
-                  <Area type="monotone" dataKey="completed" stroke="hsl(190 85% 55%)" fill="url(#gcomplete)" strokeWidth={1.2} />
-                  <Area type="monotone" dataKey="failed" stroke="hsl(0 65% 55%)" fill="url(#gfailed)" strokeWidth={1.2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+      {/* Jobs */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-1">
+          {statusFilters.map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+                statusFilter === s
+                  ? "text-foreground bg-white/[0.06]"
+                  : "text-muted-foreground/50 hover:text-foreground/70"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="rounded-lg border border-white/[0.06] overflow-hidden max-h-[600px] overflow-y-auto">
+          <JobTable
+            ref={sentinelRef}
+            jobs={jobs}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+          />
+        </div>
+      </div>
     </div>
   );
 }

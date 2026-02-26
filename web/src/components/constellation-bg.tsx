@@ -57,15 +57,15 @@ export function ConstellationBg() {
 
       // Nebula wash — subtle radial glow in top-right
       const nebula = ctx.createRadialGradient(w * 0.75, h * 0.15, 0, w * 0.75, h * 0.15, w * 0.5);
-      nebula.addColorStop(0, "hsla(250, 60%, 35%, 0.06)");
-      nebula.addColorStop(0.5, "hsla(250, 50%, 25%, 0.02)");
+      nebula.addColorStop(0, "hsla(248, 45%, 35%, 0.06)");
+      nebula.addColorStop(0.5, "hsla(248, 40%, 25%, 0.02)");
       nebula.addColorStop(1, "transparent");
       ctx.fillStyle = nebula;
       ctx.fillRect(0, 0, w, h);
 
-      // Second wash — bottom-left cyan hint
+      // Second wash — bottom-left teal hint
       const wash2 = ctx.createRadialGradient(w * 0.1, h * 0.9, 0, w * 0.1, h * 0.9, w * 0.4);
-      wash2.addColorStop(0, "hsla(190, 80%, 40%, 0.03)");
+      wash2.addColorStop(0, "hsla(192, 55%, 38%, 0.03)");
       wash2.addColorStop(1, "transparent");
       ctx.fillStyle = wash2;
       ctx.fillRect(0, 0, w, h);
@@ -89,7 +89,7 @@ export function ConstellationBg() {
           const d = Math.sqrt(dx * dx + dy * dy);
           if (d < LINK_DIST) {
             const a = (1 - d / LINK_DIST) * 0.08;
-            ctx.strokeStyle = `hsla(230, 40%, 55%, ${a})`;
+            ctx.strokeStyle = `hsla(228, 35%, 50%, ${a})`;
             ctx.beginPath();
             ctx.moveTo(stars[i].x, stars[i].y);
             ctx.lineTo(stars[j].x, stars[j].y);

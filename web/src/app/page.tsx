@@ -31,10 +31,10 @@ export default function QueuesPage() {
           animate={{ opacity: 1 }}
           className="rounded-lg border border-dashed border-white/[0.06] py-20 flex flex-col items-center"
         >
-          <svg viewBox="0 0 24 24" fill="none" className="size-8 text-muted-foreground/15 mb-3">
+          <svg viewBox="0 0 24 24" fill="none" className="size-8 text-muted-foreground/20 mb-3">
             <path d="M12 2L14.5 8.5L21 12L14.5 15.5L12 22L9.5 15.5L3 12L9.5 8.5L12 2Z" stroke="currentColor" strokeWidth="1" />
           </svg>
-          <p className="text-xs text-muted-foreground/35">No queues created yet</p>
+          <p className="text-xs text-muted-foreground/40">No queues created yet</p>
         </motion.div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">

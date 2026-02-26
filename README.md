@@ -1,6 +1,6 @@
 # Starq
 
-A lightweight, self-hosted work queue built on Redis Streams. Create multiple independent queues and submit jobs via the web app, CLI, or API.
+A lightweight, self-hosted work queue built on Redis Streams. Create multiple independent queues and submit jobs via the web app, CLI, or API. Queues can optionally deduplicate payloads to prevent reprocessing.
 
 Features:
 - **HTTP-native** — workers are simple HTTP clients in any language
