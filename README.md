@@ -30,16 +30,26 @@ Writes require `X-API-Key` header. Reads are open.
 
 ## CLI
 
-Submit a JSONL file where each line becomes a job payload:
-
 ```bash
-cd api && uv run starq jobs.jsonl -q my-queue -k dev-key
+cd api && uv run starq -u https://queue.korroni.cloud -k <API_KEY> <command>
 ```
 
-Options:
-- `-u URL` — API base URL (default: `http://localhost:8000`)
-- `-b N` — Batch size per request (default: 100)
-- Use `-` as file to read from stdin
+Commands:
+
+| Command | Description |
+|---|---|
+| `health` | Check API health |
+| `queues` | List all queues |
+| `create <name>` | Create a queue |
+| `info <name>` | Queue details + stats |
+| `delete <name>` | Delete a queue |
+| `submit <file> -q <queue>` | Submit JSONL file as jobs (`-` for stdin) |
+| `jobs <queue>` | List jobs (filter with `-s pending`) |
+| `claim <queue>` | Claim jobs (`-n 5` for count) |
+| `complete <queue> <id>` | Mark job completed |
+| `fail <queue> <id>` | Mark job failed |
+
+Global options: `-u URL` (default: `http://localhost:8000`), `-k API_KEY`
 
 ## Architecture
 
