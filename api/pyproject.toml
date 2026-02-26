@@ -10,6 +10,9 @@ dependencies = [
     "pydantic-settings>=2.7",
 ]
 
+[project.scripts]
+starq = "starq.cli:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

@@ -6,13 +6,14 @@ import time
 from fastapi import APIRouter, Depends, HTTPException
 
 from starq.auth import verify_api_key
+from starq.config import settings
 from starq.models import (
     ClaimedJobs,
     JobClaim,
     JobComplete,
     JobFail,
     JobInfo,
-    JobList,
+    JobListResponse,
     JobSubmit,
     JobSubmitBatch,
 )
@@ -75,23 +76,36 @@ async def submit_jobs(name: str, body: JobSubmit | JobSubmitBatch):
     sk = stream_key(name)
     now = str(int(time.time()))
 
-    for job in jobs_to_submit:
-        # Add to stream
-        job_id = await r.xadd(
-            sk,
-            {"payload": json.dumps(job.payload), "priority": str(job.priority)},
-        )
+    pipe = r.pipeline()
+    job_ids = []
 
-        # Store job metadata
+    # Add all jobs to stream in a pipeline
+    for job in jobs_to_submit:
+        pipe.xadd(sk, {"payload": json.dumps(job.payload), "priority": str(job.priority)})
+    xadd_results = await pipe.execute()
+
+    # Store metadata in a second pipeline
+    pipe = r.pipeline()
+    for i, job in enumerate(jobs_to_submit):
+        job_id = xadd_results[i]
+        job_ids.append(job_id)
         meta = {
             "status": "pending",
             "payload": json.dumps(job.payload),
             "created_at": now,
             "retries": "0",
         }
-        await r.hset(job_meta_key(name, job_id), mapping=meta)
+        pipe.hset(job_meta_key(name, job_id), mapping=meta)
+    await pipe.execute()
 
-        result.append(_job_info_from_meta(name, job_id, meta))
+    for i, job in enumerate(jobs_to_submit):
+        result.append(JobInfo(
+            id=job_ids[i],
+            queue=name,
+            status="pending",
+            payload=job.payload,
+            created_at=now,
+        ))
 
     await r.aclose()
     return result
@@ -113,7 +127,6 @@ async def claim_jobs(name: str, body: JobClaim):
 
     try:
         stale_result = await r.xautoclaim(sk, cg, body.worker_id, min_idle_time=claim_timeout_ms, start_id="0-0", count=body.count)
-        # stale_result = (next_start_id, [(id, fields), ...], deleted_ids)
         if stale_result and len(stale_result) > 1 and stale_result[1]:
             for entry_id, fields in stale_result[1]:
                 jmk = job_meta_key(name, entry_id)
@@ -127,7 +140,7 @@ async def claim_jobs(name: str, body: JobClaim):
                 job_meta = await r.hgetall(jmk)
                 claimed.append(_job_info_from_meta(name, entry_id, job_meta))
     except Exception:
-        pass  # No stale jobs or group doesn't exist yet
+        pass
 
     # Then read new jobs if we need more
     remaining = body.count - len(claimed)
@@ -167,17 +180,17 @@ async def complete_job(name: str, job_id: str, body: JobComplete):
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
 
     now = str(int(time.time()))
-    await r.hset(jmk, mapping={
+    pipe = r.pipeline()
+    pipe.hset(jmk, mapping={
         "status": "completed",
         "result": json.dumps(body.result),
         "completed_at": now,
     })
-
-    # ACK the message
-    await r.xack(stream_key(name), consumer_group(name), job_id)
-
-    # Increment counter
-    await r.incr(stats_completed_key(name))
+    # Set TTL on completed job metadata so it doesn't accumulate forever
+    pipe.expire(jmk, settings.job_meta_ttl)
+    pipe.xack(stream_key(name), consumer_group(name), job_id)
+    pipe.incr(stats_completed_key(name))
+    await pipe.execute()
 
     await r.aclose()
     return {"status": "completed", "job_id": job_id}
@@ -198,7 +211,6 @@ async def fail_job(name: str, job_id: str, body: JobFail):
     retries = int(await r.hget(jmk, "retries") or 0)
 
     if retries < max_retries:
-        # Re-enqueue: just update status, leave in PEL for reclaim
         await r.hset(jmk, mapping={
             "status": "pending",
             "error": body.error,
@@ -206,43 +218,76 @@ async def fail_job(name: str, job_id: str, body: JobFail):
             "claimed_at": "",
         })
     else:
-        # Dead-letter: ACK + mark as failed
         now = str(int(time.time()))
-        await r.hset(jmk, mapping={
+        pipe = r.pipeline()
+        pipe.hset(jmk, mapping={
             "status": "failed",
             "error": body.error,
             "completed_at": now,
         })
-        await r.xack(stream_key(name), consumer_group(name), job_id)
-        await r.incr(stats_failed_key(name))
+        pipe.expire(jmk, settings.job_meta_ttl)
+        pipe.xack(stream_key(name), consumer_group(name), job_id)
+        pipe.incr(stats_failed_key(name))
+        await pipe.execute()
 
     await r.aclose()
     return {"status": "failed", "job_id": job_id, "retries": retries}
 
 
-@router.get("", response_model=JobList)
-async def list_jobs(name: str, status: str | None = None, count: int = 50):
+@router.get("", response_model=JobListResponse)
+async def list_jobs(
+    name: str,
+    status: str | None = None,
+    count: int = 50,
+    cursor: str | None = None,
+):
+    """Cursor-based paginated job listing. Uses XREVRANGE with stream IDs."""
     r = get_redis()
     await _ensure_queue(r, name)
 
     sk = stream_key(name)
-    # Get recent entries from stream
-    entries = await r.xrevrange(sk, count=count)
+
+    # XREVRANGE paginates by using the previous page's last ID minus 1ms
+    max_id = "+"
+    if cursor:
+        # Cursor is the last stream ID from previous page — go before it
+        parts = cursor.split("-")
+        if len(parts) == 2:
+            ts, seq = int(parts[0]), int(parts[1])
+            if seq > 0:
+                max_id = f"{ts}-{seq - 1}"
+            else:
+                max_id = f"{ts - 1}-{2**63 - 1}"
+
+    # Fetch one extra to detect has_more
+    fetch_count = count + 1
+    entries = await r.xrevrange(sk, max=max_id, count=fetch_count)
+
+    has_more = len(entries) > count
+    if has_more:
+        entries = entries[:count]
+
+    # Pipeline all HGETALL calls
+    if entries:
+        pipe = r.pipeline()
+        for entry_id, _ in entries:
+            pipe.hgetall(job_meta_key(name, entry_id))
+        metas = await pipe.execute()
+    else:
+        metas = []
 
     jobs = []
-    for entry_id, fields in entries:
-        jmk = job_meta_key(name, entry_id)
-        meta = await r.hgetall(jmk)
-        if not meta:
-            # Job metadata may have been cleaned up; reconstruct from stream
-            meta = {
-                "status": "pending",
-                "payload": fields.get("payload", "{}"),
-                "created_at": "",
-            }
+    for i, (entry_id, fields) in enumerate(entries):
+        meta = metas[i] if metas[i] else {
+            "status": "pending",
+            "payload": fields.get("payload", "{}"),
+            "created_at": "",
+        }
         job = _job_info_from_meta(name, entry_id, meta)
         if status is None or job.status == status:
             jobs.append(job)
 
+    next_cursor = entries[-1][0] if has_more and entries else ""
+
     await r.aclose()
-    return JobList(jobs=jobs)
+    return JobListResponse(jobs=jobs, cursor=next_cursor, has_more=has_more)

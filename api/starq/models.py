@@ -73,8 +73,10 @@ class JobInfo(BaseModel):
     completed_at: str = ""
 
 
-class JobList(BaseModel):
+class JobListResponse(BaseModel):
     jobs: list[JobInfo]
+    cursor: str = ""  # stream ID for next page ("" = no more)
+    has_more: bool = False
 
 
 class ClaimedJobs(BaseModel):

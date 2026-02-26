@@ -128,25 +128,20 @@ async def delete_queue(name: str):
     await r.srem(queue_set_key(), name)
 
     # Delete stream, metadata, stats
-    keys_to_delete = [
+    await r.unlink(
         stream_key(name),
         queue_meta_key(name),
         stats_completed_key(name),
         stats_failed_key(name),
-    ]
+    )
 
-    # Find and delete all job metadata keys
-    cursor = "0"
-    job_keys = []
+    # Delete job metadata keys in batches via SCAN + UNLINK
+    cursor_val: int | str = 0
     while True:
-        cursor, keys = await r.scan(cursor=cursor, match=f"starq:job:{name}:*", count=100)
-        job_keys.extend(keys)
-        if cursor == 0 or cursor == "0":
+        cursor_val, keys = await r.scan(cursor=cursor_val, match=f"starq:job:{name}:*", count=500)
+        if keys:
+            await r.unlink(*keys)
+        if cursor_val == 0 or cursor_val == "0":
             break
-
-    if job_keys:
-        keys_to_delete.extend(job_keys)
-
-    await r.delete(*keys_to_delete)
     await r.aclose()
     return {"status": "deleted", "queue": name}
