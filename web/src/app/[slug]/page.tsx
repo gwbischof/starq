@@ -14,7 +14,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LiveCounter } from "@/components/live-counter";
 import { JobTable } from "@/components/job-table";
-import { WorkerPulse } from "@/components/worker-pulse";
 import { SubmitJobDialog } from "@/components/submit-job-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -113,8 +112,6 @@ export default function QueueDetailPage() {
     failed: Math.max(0, (queue?.failed || 0) - (12 - i) * Math.floor(Math.random() * 1)),
   }));
 
-  const workerIds = [...new Set(jobs.filter((j) => j.claimed_by).map((j) => j.claimed_by))];
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -122,10 +119,9 @@ export default function QueueDetailPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <div className="flex items-center gap-2.5">
             <h1 className="text-lg font-semibold text-foreground">{slug}</h1>
-            {queue && queue.workers > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-starglow/8 border border-starglow/15 px-2 py-0.5 text-[10px] font-medium text-starglow/80">
-                <span className="size-1.5 rounded-full bg-starglow animate-pulse" />
-                {queue.workers} active
+            {queue?.dedupe && (
+              <span className="inline-flex items-center rounded-full bg-nebula/8 border border-nebula/15 px-2 py-0.5 text-[10px] font-medium text-nebula/70">
+                dedupe
               </span>
             )}
           </div>
@@ -164,7 +160,7 @@ export default function QueueDetailPage() {
                         setDeleting(true);
                         try {
                           await deleteQueue(slug);
-                          router.push("/queues");
+                          router.push("/");
                         } catch {
                           setDeleting(false);
                         }
@@ -206,7 +202,6 @@ export default function QueueDetailPage() {
       <Tabs defaultValue="jobs">
         <TabsList className="bg-white/[0.02] border border-white/[0.04]">
           <TabsTrigger value="jobs">Jobs</TabsTrigger>
-          <TabsTrigger value="workers">Workers</TabsTrigger>
           <TabsTrigger value="stats">Stats</TabsTrigger>
         </TabsList>
 
@@ -233,23 +228,6 @@ export default function QueueDetailPage() {
               hasMore={hasMore}
               loadingMore={loadingMore}
             />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="workers" className="mt-4">
-          <div className="rounded-lg border border-white/[0.04] bg-white/[0.015] p-5">
-            <h3 className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium mb-4">
-              Active Workers
-            </h3>
-            {workerIds.length === 0 ? (
-              <p className="text-xs text-muted-foreground/30 py-6 text-center">No active workers</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {workerIds.map((id) => (
-                  <WorkerPulse key={id} id={id} />
-                ))}
-              </div>
-            )}
           </div>
         </TabsContent>
 

@@ -58,7 +58,6 @@ def _job_info_from_meta(queue: str, job_id: str, meta: dict) -> JobInfo:
         status=meta.get("status", "pending"),
         payload=payload,
         result=result,
-        claimed_by=meta.get("claimed_by", ""),
         error=meta.get("error", ""),
         retries=int(meta.get("retries", 0)),
         created_at=meta.get("created_at", ""),
@@ -151,15 +150,16 @@ async def claim_jobs(name: str, body: JobClaim):
     meta = await r.hgetall(queue_meta_key(name))
     claim_timeout_ms = int(meta.get("claim_timeout", 300)) * 1000
 
+    consumer = "w"
+
     try:
-        stale_result = await r.xautoclaim(sk, cg, body.worker_id, min_idle_time=claim_timeout_ms, start_id="0-0", count=body.count)
+        stale_result = await r.xautoclaim(sk, cg, consumer, min_idle_time=claim_timeout_ms, start_id="0-0", count=body.count)
         if stale_result and len(stale_result) > 1 and stale_result[1]:
             for entry_id, fields in stale_result[1]:
                 jmk = job_meta_key(name, entry_id)
                 retries = int(await r.hget(jmk, "retries") or 0)
                 await r.hset(jmk, mapping={
                     "status": "claimed",
-                    "claimed_by": body.worker_id,
                     "claimed_at": now,
                     "retries": str(retries + 1),
                 })
@@ -173,7 +173,7 @@ async def claim_jobs(name: str, body: JobClaim):
     if remaining > 0:
         try:
             results = await r.xreadgroup(
-                cg, body.worker_id, {sk: ">"},
+                cg, consumer, {sk: ">"},
                 count=remaining,
                 block=body.block_ms if body.block_ms > 0 else None,
             )
@@ -183,7 +183,6 @@ async def claim_jobs(name: str, body: JobClaim):
                         jmk = job_meta_key(name, entry_id)
                         await r.hset(jmk, mapping={
                             "status": "claimed",
-                            "claimed_by": body.worker_id,
                             "claimed_at": now,
                         })
                         job_meta = await r.hgetall(jmk)
@@ -240,7 +239,6 @@ async def fail_job(name: str, job_id: str, body: JobFail):
         await r.hset(jmk, mapping={
             "status": "pending",
             "error": body.error,
-            "claimed_by": "",
             "claimed_at": "",
         })
     else:

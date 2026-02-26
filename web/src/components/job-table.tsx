@@ -47,7 +47,6 @@ export const JobTable = forwardRef<HTMLDivElement, JobTableProps>(
             <TableRow className="border-white/[0.03] hover:bg-transparent">
               <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">ID</TableHead>
               <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Status</TableHead>
-              <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Worker</TableHead>
               <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Created</TableHead>
               <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Retries</TableHead>
               <TableHead className="text-muted-foreground/40 text-[10px] uppercase tracking-wider font-medium">Payload</TableHead>
@@ -56,7 +55,7 @@ export const JobTable = forwardRef<HTMLDivElement, JobTableProps>(
           <TableBody>
             {jobs.length === 0 && !loadingMore && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground/30 py-10 text-xs">
+                <TableCell colSpan={5} className="text-center text-muted-foreground/30 py-10 text-xs">
                   No jobs
                 </TableCell>
               </TableRow>
@@ -68,9 +67,6 @@ export const JobTable = forwardRef<HTMLDivElement, JobTableProps>(
                 </TableCell>
                 <TableCell>
                   <StatusDot status={job.status} />
-                </TableCell>
-                <TableCell className="font-mono text-[11px] text-muted-foreground/45">
-                  {job.claimed_by || "\u2014"}
                 </TableCell>
                 <TableCell className="text-[11px] text-muted-foreground/45 tabular-nums">
                   {formatTime(job.created_at)}

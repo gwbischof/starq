@@ -32,15 +32,12 @@ async def _queue_info(r, name: str) -> QueueInfo:
     except Exception:
         length = 0
 
-    # Pending + workers from XPENDING
+    # Pending (claimed but not yet acked) from XPENDING
     pending = 0
-    workers = 0
     try:
         info = await r.xpending(sk, consumer_group(name))
         if info:
             pending = info.get("pending", 0) if isinstance(info, dict) else info[0]
-            consumers = info.get("consumers", []) if isinstance(info, dict) else info[3] if len(info) > 3 else []
-            workers = len(consumers) if consumers else 0
     except Exception:
         pass
 
@@ -56,7 +53,6 @@ async def _queue_info(r, name: str) -> QueueInfo:
         pending=pending,
         completed=completed,
         failed=failed,
-        workers=workers,
         length=length,
     )
 

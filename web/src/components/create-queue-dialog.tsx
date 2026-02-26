@@ -24,8 +24,6 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (!hasApiKey()) return null;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -52,14 +50,19 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className="bg-nebula/80 hover:bg-nebula/90 text-white text-xs h-8">
-          Create Queue
+        <Button variant="outline" size="sm" className="border-starglow/20 text-starglow/80 hover:bg-starglow/10 hover:border-starglow/30 hover:text-starglow text-xs h-8 transition-all">
+          + Create Queue
         </Button>
       </DialogTrigger>
       <DialogContent className="bg-[hsl(222_42%_9%)] border-white/[0.06] shadow-2xl shadow-black/60">
         <DialogHeader>
           <DialogTitle className="text-sm">Create Queue</DialogTitle>
         </DialogHeader>
+        {!hasApiKey() ? (
+          <p className="text-xs text-muted-foreground/60 py-4">
+            Set an API key in the top-right corner to create queues.
+          </p>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="q-name" className="text-xs text-muted-foreground/70">Name</Label>
@@ -107,11 +110,12 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
           </div>
           {error && <p className="text-destructive text-xs">{error}</p>}
           <DialogFooter>
-            <Button type="submit" size="sm" disabled={loading} className="bg-nebula/80 hover:bg-nebula/90 text-white text-xs h-8">
+            <Button type="submit" size="sm" disabled={loading} className="bg-starglow/15 border border-starglow/25 text-starglow hover:bg-starglow/25 hover:border-starglow/35 text-xs h-8 transition-all">
               {loading ? "Creating\u2026" : "Create"}
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -7,7 +7,6 @@ export interface QueueInfo {
   pending: number;
   completed: number;
   failed: number;
-  workers: number;
   length: number;
 }
 
@@ -21,7 +20,6 @@ export interface JobInfo {
   status: "pending" | "claimed" | "completed" | "failed";
   payload: Record<string, unknown>;
   result: Record<string, unknown>;
-  claimed_by: string;
   error: string;
   retries: number;
   created_at: string;

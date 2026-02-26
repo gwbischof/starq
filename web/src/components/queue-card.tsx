@@ -32,7 +32,7 @@ export function QueueCard({ queue }: { queue: QueueInfo }) {
   );
 
   return (
-    <Link href={`/queues/${queue.name}`}>
+    <Link href={`/${queue.name}`}>
       <motion.div
         whileHover={{ y: -1 }}
         transition={{ duration: 0.15 }}
@@ -41,10 +41,15 @@ export function QueueCard({ queue }: { queue: QueueInfo }) {
         <div className="flex items-start justify-between mb-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <div className={`size-1.5 rounded-full shrink-0 ${queue.workers > 0 ? "bg-starglow" : "bg-muted-foreground/25"}`} />
+              <div className={`size-1.5 rounded-full shrink-0 ${queue.pending > 0 ? "bg-starglow" : "bg-muted-foreground/25"}`} />
               <h3 className="text-sm font-semibold text-foreground/90 truncate group-hover:text-foreground transition-colors">
                 {queue.name}
               </h3>
+              {queue.dedupe && (
+                <span className="shrink-0 rounded-full bg-nebula/8 border border-nebula/15 px-1.5 py-px text-[9px] font-medium text-nebula/60">
+                  dedupe
+                </span>
+              )}
             </div>
             {queue.description && (
               <p className="text-[11px] text-muted-foreground/40 truncate mt-1 pl-3.5">
@@ -65,8 +70,8 @@ export function QueueCard({ queue }: { queue: QueueInfo }) {
             <LiveCounter value={queue.completed} className="text-base font-semibold tabular-nums text-starglow/80" />
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Workers</p>
-            <LiveCounter value={queue.workers} className="text-base font-semibold tabular-nums text-foreground/70" />
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground/40 mb-0.5">Failed</p>
+            <LiveCounter value={queue.failed} className="text-base font-semibold tabular-nums text-destructive/70" />
           </div>
         </div>
       </motion.div>

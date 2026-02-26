@@ -40,7 +40,7 @@ def stream_key(name: str) -> str:
 
 
 def consumer_group(name: str) -> str:
-    return f"starq:cg:{name}"
+    return name
 
 
 def job_meta_key(queue: str, job_id: str) -> str:

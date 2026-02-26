@@ -25,7 +25,6 @@ class QueueInfo(BaseModel):
     pending: int = 0
     completed: int = 0
     failed: int = 0
-    workers: int = 0
     length: int = 0
 
 
@@ -46,18 +45,15 @@ class JobSubmitBatch(BaseModel):
 
 
 class JobClaim(BaseModel):
-    worker_id: str
     count: int = 1
     block_ms: int = 0
 
 
 class JobComplete(BaseModel):
-    worker_id: str
     result: dict[str, Any] = Field(default_factory=dict)
 
 
 class JobFail(BaseModel):
-    worker_id: str
     error: str = ""
 
 
@@ -67,7 +63,6 @@ class JobInfo(BaseModel):
     status: str = "pending"
     payload: dict[str, Any] = Field(default_factory=dict)
     result: dict[str, Any] = Field(default_factory=dict)
-    claimed_by: str = ""
     error: str = ""
     retries: int = 0
     created_at: str = ""

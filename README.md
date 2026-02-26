@@ -51,6 +51,67 @@ Commands:
 
 Global options: `-u URL` (default: `http://localhost:8000`), `-k API_KEY`
 
+## Writing a Worker
+
+Workers are plain HTTP clients. Claim jobs, do work, report back. No SDK needed.
+
+```python
+import requests
+
+API = "https://queue.korroni.cloud"
+API_KEY = "your-api-key"
+QUEUE = "my-queue"
+HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
+
+
+def claim_jobs(count=1, block_ms=5000):
+    r = requests.post(
+        f"{API}/api/v1/queues/{QUEUE}/jobs/claim",
+        json={"count": count, "block_ms": block_ms},
+        headers=HEADERS,
+    )
+    r.raise_for_status()
+    return r.json()["jobs"]
+
+
+def complete_job(job_id, result=None):
+    requests.put(
+        f"{API}/api/v1/queues/{QUEUE}/jobs/{job_id}/complete",
+        json={"result": result or {}},
+        headers=HEADERS,
+    ).raise_for_status()
+
+
+def fail_job(job_id, error=""):
+    requests.put(
+        f"{API}/api/v1/queues/{QUEUE}/jobs/{job_id}/fail",
+        json={"error": error},
+        headers=HEADERS,
+    ).raise_for_status()
+
+
+while True:
+    jobs = claim_jobs(count=5, block_ms=5000)
+    if not jobs:
+        continue
+    for job in jobs:
+        try:
+            # --- your work here ---
+            payload = job["payload"]
+            result = {"processed": True}
+            # ----------------------
+            complete_job(job["id"], result)
+        except Exception as e:
+            fail_job(job["id"], str(e))
+```
+
+Key points:
+- **`block_ms`** makes `claim` long-poll so you don't busy-loop when the queue is empty
+- **`count`** lets you grab multiple jobs at once for batch processing
+- Failed jobs are retried automatically up to the queue's `max_retries` setting
+- If a worker dies mid-job, the job is reclaimed after the queue's `claim_timeout` expires
+- Run as many worker processes as you want — the API handles concurrency
+
 ## Architecture
 
 Three containers:

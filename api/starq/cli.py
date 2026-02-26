@@ -45,7 +45,7 @@ def cmd_list(args):
         print("No queues")
         return
     for q in queues:
-        print(f"  {q['name']:20s}  pending={q.get('pending',0)}  completed={q.get('completed',0)}  failed={q.get('failed',0)}  workers={q.get('workers',0)}")
+        print(f"  {q['name']:20s}  pending={q.get('pending',0)}  completed={q.get('completed',0)}  failed={q.get('failed',0)}")
 
 
 def cmd_info(args):
@@ -123,7 +123,7 @@ def cmd_jobs(args):
 
 
 def cmd_claim(args):
-    data = {"worker_id": args.worker, "count": args.count}
+    data = {"count": args.count}
     r = _request(f"{args.url}/api/v1/queues/{args.queue}/jobs/claim", method="POST", data=data, api_key=args.api_key)
     jobs = r.get("jobs", [])
     if not jobs:
@@ -134,7 +134,7 @@ def cmd_claim(args):
 
 
 def cmd_complete(args):
-    data = {"worker_id": args.worker}
+    data = {}
     if args.result:
         data["result"] = json.loads(args.result)
     r = _request(f"{args.url}/api/v1/queues/{args.queue}/jobs/{args.job_id}/complete", method="PUT", data=data, api_key=args.api_key)
@@ -142,7 +142,7 @@ def cmd_complete(args):
 
 
 def cmd_fail(args):
-    data = {"worker_id": args.worker, "error": args.error or ""}
+    data = {"error": args.error or ""}
     r = _request(f"{args.url}/api/v1/queues/{args.queue}/jobs/{args.job_id}/fail", method="PUT", data=data, api_key=args.api_key)
     print(json.dumps(r, indent=2))
 
@@ -184,19 +184,16 @@ def main():
 
     p = sub.add_parser("claim", help="Claim jobs from a queue")
     p.add_argument("queue", help="Queue name")
-    p.add_argument("-w", "--worker", default="cli-worker", help="Worker ID")
     p.add_argument("-n", "--count", type=int, default=1, help="Number of jobs to claim")
 
     p = sub.add_parser("complete", help="Mark a job as completed")
     p.add_argument("queue", help="Queue name")
     p.add_argument("job_id", help="Job ID")
-    p.add_argument("-w", "--worker", default="cli-worker", help="Worker ID")
     p.add_argument("-r", "--result", default=None, help="Result JSON")
 
     p = sub.add_parser("fail", help="Mark a job as failed")
     p.add_argument("queue", help="Queue name")
     p.add_argument("job_id", help="Job ID")
-    p.add_argument("-w", "--worker", default="cli-worker", help="Worker ID")
     p.add_argument("-e", "--error", default="", help="Error message")
 
     args = parser.parse_args()

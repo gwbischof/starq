@@ -72,7 +72,6 @@ async def reclaim_stale_jobs():
                         # Reset for reclaim
                         await r.hset(jmk, mapping={
                             "status": "pending",
-                            "claimed_by": "",
                             "claimed_at": "",
                         })
 
