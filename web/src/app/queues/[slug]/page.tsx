@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Area,
@@ -16,7 +16,15 @@ import { LiveCounter } from "@/components/live-counter";
 import { JobTable } from "@/components/job-table";
 import { WorkerPulse } from "@/components/worker-pulse";
 import { SubmitJobDialog } from "@/components/submit-job-dialog";
-import { getQueue, listJobs } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { getQueue, listJobs, deleteQueue, hasApiKey } from "@/lib/api";
 import { usePolling } from "@/lib/use-polling";
 import type { QueueInfo, JobInfo } from "@/lib/types";
 
@@ -24,7 +32,10 @@ const statusFilters = ["all", "pending", "claimed", "completed", "failed"] as co
 
 export default function QueueDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [jobs, setJobs] = useState<JobInfo[]>([]);
   const [cursor, setCursor] = useState<string>("");
   const [hasMore, setHasMore] = useState(false);
@@ -122,7 +133,52 @@ export default function QueueDetailPage() {
             <p className="text-xs text-muted-foreground/50 mt-0.5">{queue.description}</p>
           )}
         </motion.div>
-        <SubmitJobDialog queue={slug} onSubmitted={fetchInitial} />
+        <div className="flex items-center gap-2">
+          <SubmitJobDialog queue={slug} onSubmitted={fetchInitial} />
+          {hasApiKey() && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteOpen(true)}
+                className="border-destructive/20 text-destructive/70 hover:bg-destructive/10 hover:text-destructive text-xs h-8"
+              >
+                Delete
+              </Button>
+              <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                <DialogContent className="bg-[hsl(222_42%_9%)] border-white/[0.06] shadow-2xl shadow-black/60">
+                  <DialogHeader>
+                    <DialogTitle className="text-sm">Delete queue <span className="text-destructive/80">{slug}</span>?</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-xs text-muted-foreground/60">
+                    This will permanently delete the queue, all its jobs, and statistics. This cannot be undone.
+                  </p>
+                  <DialogFooter className="gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setDeleteOpen(false)} className="text-xs h-8 border-white/[0.08]">
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={deleting}
+                      onClick={async () => {
+                        setDeleting(true);
+                        try {
+                          await deleteQueue(slug);
+                          router.push("/queues");
+                        } catch {
+                          setDeleting(false);
+                        }
+                      }}
+                      className="bg-destructive/80 hover:bg-destructive text-white text-xs h-8"
+                    >
+                      {deleting ? "Deleting\u2026" : "Yes, delete"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stats strip */}

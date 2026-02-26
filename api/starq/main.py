@@ -13,6 +13,7 @@ from starq.config import settings
 from starq.redis_client import (
     close_pool,
     consumer_group,
+    dedupe_key,
     get_redis,
     job_meta_key,
     queue_meta_key,
@@ -56,7 +57,8 @@ async def reclaim_stale_jobs():
                     retries = int(await r.hget(jmk, "retries") or 0)
 
                     if retries >= max_retries:
-                        # Dead-letter
+                        # Dead-letter — remove dedupe hash so payload can be retried
+                        dh = await r.hget(jmk, "dedupe_hash")
                         await r.hset(jmk, mapping={
                             "status": "failed",
                             "error": "max retries exceeded (stale reclaim)",
@@ -64,6 +66,8 @@ async def reclaim_stale_jobs():
                         })
                         await r.xack(sk, cg, entry_id)
                         await r.incr(stats_failed_key(name))
+                        if dh:
+                            await r.srem(dedupe_key(name), dh)
                     else:
                         # Reset for reclaim
                         await r.hset(jmk, mapping={

@@ -13,6 +13,7 @@ class QueueCreate(BaseModel):
     description: str = ""
     max_retries: int = 3
     claim_timeout: int = 300  # seconds
+    dedupe: bool = False
 
 
 class QueueInfo(BaseModel):
@@ -20,6 +21,7 @@ class QueueInfo(BaseModel):
     description: str = ""
     max_retries: int = 3
     claim_timeout: int = 300
+    dedupe: bool = False
     pending: int = 0
     completed: int = 0
     failed: int = 0

@@ -3,6 +3,7 @@ export interface QueueInfo {
   description: string;
   max_retries: number;
   claim_timeout: number;
+  dedupe: boolean;
   pending: number;
   completed: number;
   failed: number;
@@ -43,6 +44,7 @@ export interface QueueCreate {
   description?: string;
   max_retries?: number;
   claim_timeout?: number;
+  dedupe?: boolean;
 }
 
 export interface JobSubmit {

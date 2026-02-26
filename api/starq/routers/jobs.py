@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 
@@ -19,6 +20,7 @@ from starq.models import (
 )
 from starq.redis_client import (
     consumer_group,
+    dedupe_key,
     get_redis,
     job_meta_key,
     queue_meta_key,
@@ -65,50 +67,74 @@ def _job_info_from_meta(queue: str, job_id: str, meta: dict) -> JobInfo:
     )
 
 
-@router.post("", response_model=list[JobInfo], dependencies=[Depends(verify_api_key)])
+def _payload_hash(payload: dict) -> str:
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+@router.post("", dependencies=[Depends(verify_api_key)])
 async def submit_jobs(name: str, body: JobSubmit | JobSubmitBatch):
     r = get_redis()
     await _ensure_queue(r, name)
 
     jobs_to_submit = body.jobs if isinstance(body, JobSubmitBatch) else [body]
-    result = []
 
+    # Check if dedupe is enabled
+    queue_meta = await r.hgetall(queue_meta_key(name))
+    is_dedupe = queue_meta.get("dedupe", "0") == "1"
+
+    # Filter duplicates if dedupe enabled
+    accepted: list[tuple[int, JobSubmit, str]] = []  # (orig_index, job, hash)
+    skipped = 0
+
+    if is_dedupe:
+        dk = dedupe_key(name)
+        for i, job in enumerate(jobs_to_submit):
+            h = _payload_hash(job.payload)
+            if await r.sismember(dk, h):
+                skipped += 1
+            else:
+                accepted.append((i, job, h))
+    else:
+        accepted = [(i, job, "") for i, job in enumerate(jobs_to_submit)]
+
+    result = []
     sk = stream_key(name)
     now = str(int(time.time()))
 
-    pipe = r.pipeline()
-    job_ids = []
+    if accepted:
+        # Add all jobs to stream in a pipeline
+        pipe = r.pipeline()
+        for _, job, _ in accepted:
+            pipe.xadd(sk, {"payload": json.dumps(job.payload), "priority": str(job.priority)})
+        xadd_results = await pipe.execute()
 
-    # Add all jobs to stream in a pipeline
-    for job in jobs_to_submit:
-        pipe.xadd(sk, {"payload": json.dumps(job.payload), "priority": str(job.priority)})
-    xadd_results = await pipe.execute()
+        # Store metadata + add dedupe hashes in a second pipeline
+        pipe = r.pipeline()
+        for idx, (_, job, h) in enumerate(accepted):
+            job_id = xadd_results[idx]
+            meta = {
+                "status": "pending",
+                "payload": json.dumps(job.payload),
+                "created_at": now,
+                "retries": "0",
+            }
+            if is_dedupe and h:
+                meta["dedupe_hash"] = h
+                pipe.sadd(dedupe_key(name), h)
+            pipe.hset(job_meta_key(name, job_id), mapping=meta)
+        await pipe.execute()
 
-    # Store metadata in a second pipeline
-    pipe = r.pipeline()
-    for i, job in enumerate(jobs_to_submit):
-        job_id = xadd_results[i]
-        job_ids.append(job_id)
-        meta = {
-            "status": "pending",
-            "payload": json.dumps(job.payload),
-            "created_at": now,
-            "retries": "0",
-        }
-        pipe.hset(job_meta_key(name, job_id), mapping=meta)
-    await pipe.execute()
-
-    for i, job in enumerate(jobs_to_submit):
-        result.append(JobInfo(
-            id=job_ids[i],
-            queue=name,
-            status="pending",
-            payload=job.payload,
-            created_at=now,
-        ))
+        for idx, (_, job, _) in enumerate(accepted):
+            result.append(JobInfo(
+                id=xadd_results[idx],
+                queue=name,
+                status="pending",
+                payload=job.payload,
+                created_at=now,
+            ))
 
     await r.aclose()
-    return result
+    return {"jobs": result, "submitted": len(accepted), "skipped": skipped}
 
 
 @router.post("/claim", response_model=ClaimedJobs, dependencies=[Depends(verify_api_key)])
@@ -218,6 +244,8 @@ async def fail_job(name: str, job_id: str, body: JobFail):
             "claimed_at": "",
         })
     else:
+        # Terminal failure — remove dedupe hash so payload can be retried
+        dh = await r.hget(jmk, "dedupe_hash")
         now = str(int(time.time()))
         pipe = r.pipeline()
         pipe.hset(jmk, mapping={
@@ -228,6 +256,8 @@ async def fail_job(name: str, job_id: str, body: JobFail):
         pipe.expire(jmk, settings.job_meta_ttl)
         pipe.xack(stream_key(name), consumer_group(name), job_id)
         pipe.incr(stats_failed_key(name))
+        if dh:
+            pipe.srem(dedupe_key(name), dh)
         await pipe.execute()
 
     await r.aclose()

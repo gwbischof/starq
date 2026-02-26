@@ -53,3 +53,7 @@ def stats_completed_key(name: str) -> str:
 
 def stats_failed_key(name: str) -> str:
     return f"starq:stats:{name}:failed"
+
+
+def dedupe_key(name: str) -> str:
+    return f"starq:dedupe:{name}"

@@ -20,6 +20,7 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
   const [description, setDescription] = useState("");
   const [maxRetries, setMaxRetries] = useState("3");
   const [claimTimeout, setClaimTimeout] = useState("300");
+  const [dedupe, setDedupe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,6 +36,7 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
         description,
         max_retries: Number(maxRetries),
         claim_timeout: Number(claimTimeout),
+        dedupe,
       });
       setOpen(false);
       setName("");
@@ -90,6 +92,18 @@ export function CreateQueueDialog({ onCreated }: { onCreated?: () => void }) {
               <Label htmlFor="q-timeout" className="text-xs text-muted-foreground/70">Claim Timeout (s)</Label>
               <Input id="q-timeout" type="number" value={claimTimeout} onChange={(e) => setClaimTimeout(e.target.value)} className="text-xs h-8" />
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              id="q-dedupe"
+              type="checkbox"
+              checked={dedupe}
+              onChange={(e) => setDedupe(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-white/[0.06] bg-void/60 accent-nebula/80"
+            />
+            <Label htmlFor="q-dedupe" className="text-xs text-muted-foreground/70 cursor-pointer">
+              Deduplicate payloads
+            </Label>
           </div>
           {error && <p className="text-destructive text-xs">{error}</p>}
           <DialogFooter>

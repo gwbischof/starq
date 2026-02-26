@@ -8,6 +8,7 @@ from starq.auth import verify_api_key
 from starq.models import QueueCreate, QueueInfo, QueueList
 from starq.redis_client import (
     consumer_group,
+    dedupe_key,
     get_redis,
     queue_meta_key,
     queue_set_key,
@@ -51,6 +52,7 @@ async def _queue_info(r, name: str) -> QueueInfo:
         description=meta.get("description", ""),
         max_retries=int(meta.get("max_retries", 3)),
         claim_timeout=int(meta.get("claim_timeout", 300)),
+        dedupe=meta.get("dedupe", "0") == "1",
         pending=pending,
         completed=completed,
         failed=failed,
@@ -95,6 +97,7 @@ async def create_queue(body: QueueCreate):
             "description": body.description,
             "max_retries": str(body.max_retries),
             "claim_timeout": str(body.claim_timeout),
+            "dedupe": "1" if body.dedupe else "0",
         },
     )
 
@@ -127,12 +130,13 @@ async def delete_queue(name: str):
     # Remove from set
     await r.srem(queue_set_key(), name)
 
-    # Delete stream, metadata, stats
+    # Delete stream, metadata, stats, dedupe set
     await r.unlink(
         stream_key(name),
         queue_meta_key(name),
         stats_completed_key(name),
         stats_failed_key(name),
+        dedupe_key(name),
     )
 
     # Delete job metadata keys in batches via SCAN + UNLINK

@@ -95,6 +95,16 @@ export async function submitJob(
   });
 }
 
+export async function submitJobsBatch(
+  queue: string,
+  jobs: { payload: Record<string, unknown> }[]
+): Promise<{ jobs: unknown[]; submitted: number; skipped: number }> {
+  return request(`${API_BASE}/queues/${encodeURIComponent(queue)}/jobs`, {
+    method: "POST",
+    body: JSON.stringify({ jobs }),
+  });
+}
+
 // --- Health ---
 
 export async function checkHealth(): Promise<HealthResponse> {

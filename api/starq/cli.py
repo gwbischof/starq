@@ -32,6 +32,8 @@ def cmd_create(args):
     data = {"name": args.name}
     if args.description:
         data["description"] = args.description
+    if args.dedupe:
+        data["dedupe"] = True
     r = _request(f"{args.url}/api/v1/queues", method="POST", data=data, api_key=args.api_key)
     print(json.dumps(r, indent=2))
 
@@ -79,16 +81,21 @@ def cmd_submit(args):
         sys.exit(0)
 
     endpoint = f"{args.url}/api/v1/queues/{args.queue}/jobs"
-    total = 0
+    total_submitted = 0
+    total_skipped = 0
 
     for start in range(0, len(payloads), args.batch_size):
         batch = payloads[start : start + args.batch_size]
         body = {"jobs": [{"payload": p} for p in batch]}
         result = _request(endpoint, method="POST", data=body, api_key=args.api_key)
-        total += len(result)
-        print(f"  submitted {total}/{len(payloads)}")
+        total_submitted += result.get("submitted", len(result.get("jobs", [])))
+        total_skipped += result.get("skipped", 0)
+        print(f"  processed {total_submitted + total_skipped}/{len(payloads)}")
 
-    print(f"Done — {total} jobs submitted to '{args.queue}'")
+    msg = f"Done — {total_submitted} jobs submitted to '{args.queue}'"
+    if total_skipped:
+        msg += f" ({total_skipped} skipped as duplicates)"
+    print(msg)
 
 
 def cmd_jobs(args):
@@ -156,6 +163,7 @@ def main():
     p = sub.add_parser("create", help="Create a queue")
     p.add_argument("name", help="Queue name")
     p.add_argument("-d", "--description", default="", help="Queue description")
+    p.add_argument("--dedupe", action="store_true", help="Reject jobs with duplicate payloads")
 
     p = sub.add_parser("info", help="Queue details + stats")
     p.add_argument("name", help="Queue name")
