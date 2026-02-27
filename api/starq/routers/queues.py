@@ -25,24 +25,27 @@ async def _queue_info(r, name: str) -> QueueInfo:
     if not meta:
         meta = {}
 
-    # Stream length
+    # Stream length (total entries still in the stream)
     sk = stream_key(name)
     try:
-        length = await r.xlen(sk)
+        stream_len = await r.xlen(sk)
     except Exception:
-        length = 0
+        stream_len = 0
 
-    # Pending (claimed but not yet acked) from XPENDING
-    pending = 0
+    # Claimed (delivered to a worker but not yet acked) from XPENDING
+    claimed = 0
     try:
         info = await r.xpending(sk, consumer_group(name))
         if info:
-            pending = info.get("pending", 0) if isinstance(info, dict) else info[0]
+            claimed = info.get("pending", 0) if isinstance(info, dict) else info[0]
     except Exception:
         pass
 
     completed = int(await r.get(stats_completed_key(name)) or 0)
     failed = int(await r.get(stats_failed_key(name)) or 0)
+
+    # Pending = jobs in stream that haven't been claimed yet
+    pending = max(0, stream_len - claimed)
 
     return QueueInfo(
         name=name,
@@ -51,9 +54,9 @@ async def _queue_info(r, name: str) -> QueueInfo:
         claim_timeout=int(meta.get("claim_timeout", 600)),
         dedupe=meta.get("dedupe", "0") == "1",
         pending=pending,
+        claimed=claimed,
         completed=completed,
         failed=failed,
-        length=length,
     )
 
 

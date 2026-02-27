@@ -23,9 +23,9 @@ class QueueInfo(BaseModel):
     claim_timeout: int = 600
     dedupe: bool = False
     pending: int = 0
+    claimed: int = 0
     completed: int = 0
     failed: int = 0
-    length: int = 0
 
 
 class QueueList(BaseModel):

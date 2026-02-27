@@ -5,9 +5,9 @@ export interface QueueInfo {
   claim_timeout: number;
   dedupe: boolean;
   pending: number;
+  claimed: number;
   completed: number;
   failed: number;
-  length: number;
 }
 
 export interface QueueList {

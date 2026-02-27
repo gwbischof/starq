@@ -175,9 +175,9 @@ export default function QueueDetailPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "Pending", value: queue?.pending || 0, color: "text-warmstar" },
+          { label: "Claimed", value: queue?.claimed || 0, color: "text-starglow/80" },
           { label: "Completed", value: queue?.completed || 0, color: "text-aurora" },
           { label: "Failed", value: queue?.failed || 0, color: "text-destructive/80" },
-          { label: "Stream", value: queue?.length || 0, color: "text-starglow/80" },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
