@@ -44,8 +44,8 @@ async def _queue_info(r, name: str) -> QueueInfo:
     completed = int(await r.get(stats_completed_key(name)) or 0)
     failed = int(await r.get(stats_failed_key(name)) or 0)
 
-    # Pending = jobs in stream that haven't been claimed yet
-    pending = max(0, stream_len - claimed)
+    # Pending = jobs in stream not yet claimed, completed, or failed
+    pending = max(0, stream_len - claimed - completed - failed)
 
     return QueueInfo(
         name=name,
